@@ -1,0 +1,14 @@
+{
+  "name": "poyang-mahjong",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "test": "node --test packages/game-rules/test/*.test.ts packages/protocol/test/*.test.ts",
+    "test:rules": "node --test packages/game-rules/test/*.test.ts"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}
