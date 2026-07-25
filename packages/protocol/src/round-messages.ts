@@ -51,7 +51,11 @@ export type ReactionsResolvedEvent = ServerEvent<
   }
 >;
 
-export type RoundEndReason = "SELF_DRAW" | "DISCARD_WIN" | "WALL_EXHAUSTED";
+export type RoundEndReason =
+  | "SELF_DRAW"
+  | "DISCARD_WIN"
+  | "ROB_KONG_WIN"
+  | "WALL_EXHAUSTED";
 
 export type RoundSettledEvent = ServerEvent<
   "game.round.settled",

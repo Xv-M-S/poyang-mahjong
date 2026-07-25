@@ -1,3 +1,5 @@
+export * from "./scoring.ts";
+export * from "./match-engine.ts";
 export * from "./claim-resolver.ts";
 export * from "./config.ts";
 export * from "./hu-detector.ts";

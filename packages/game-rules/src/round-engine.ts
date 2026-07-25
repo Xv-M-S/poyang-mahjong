@@ -22,10 +22,19 @@ import {
   validateWall,
 } from "./wall.ts";
 
-export type RoundPhase = "PLAYING" | "REACTION_WINDOW" | "ROUND_SETTLEMENT";
+export type RoundPhase =
+  | "PLAYING"
+  | "REACTION_WINDOW"
+  | "ROB_KONG_WINDOW"
+  | "ROUND_SETTLEMENT";
 export type TurnAction = "DRAW" | "DRAW_REPLACEMENT" | "DISCARD";
-export type RoundEndReason = "SELF_DRAW" | "DISCARD_WIN" | "WALL_EXHAUSTED";
+export type RoundEndReason =
+  | "SELF_DRAW"
+  | "DISCARD_WIN"
+  | "ROB_KONG_WIN"
+  | "WALL_EXHAUSTED";
 export type MeldType = "CHI" | "PENG" | "GANG";
+export type KongType = "EXPOSED" | "CONCEALED" | "ADDED";
 
 export type RoundErrorCode =
   | "INVALID_SEAT"
@@ -36,6 +45,8 @@ export type RoundErrorCode =
   | "WRONG_TURN_ACTION"
   | "TILE_NOT_IN_HAND"
   | "NO_PENDING_DISCARD"
+  | "NO_PENDING_KONG"
+  | "INVALID_KONG"
   | "DISCARDER_CANNOT_CLAIM"
   | "REACTION_ALREADY_SUBMITTED"
   | "REACTIONS_PENDING"
@@ -51,7 +62,14 @@ export interface DeclaredMeld {
   readonly type: MeldType;
   readonly tiles: readonly Tile[];
   readonly fromSeat: number;
-  readonly claimedTileId: number;
+  readonly claimedTileId: number | null;
+  readonly kongType: KongType | null;
+}
+
+export interface PendingAddedKong {
+  readonly seat: number;
+  readonly tile: Tile;
+  readonly meldIndex: number;
 }
 
 export interface RoundOutcome {
@@ -69,6 +87,10 @@ export type RoundEventType =
   | "REACTION_SUBMITTED"
   | "REACTIONS_RESOLVED"
   | "MELD_DECLARED"
+  | "KONG_DECLARED"
+  | "ADDED_KONG_PROPOSED"
+  | "ROB_KONG_REACTION_SUBMITTED"
+  | "ROB_KONG_RESOLVED"
   | "ROUND_SETTLED";
 
 export interface RoundEvent {
@@ -91,6 +113,7 @@ export interface RoundSnapshot {
   readonly melds: readonly (readonly DeclaredMeld[])[];
   readonly discards: readonly (readonly Tile[])[];
   readonly pendingDiscard: PendingDiscard | null;
+  readonly pendingAddedKong: PendingAddedKong | null;
   readonly reactionClaims: readonly ReactionClaim[];
   readonly outcome: RoundOutcome | null;
 }
@@ -129,6 +152,7 @@ export class SingleRoundEngine {
   private currentSeat: number | null;
   private turnAction: TurnAction | null = "DISCARD";
   private pendingDiscard: PendingDiscard | null = null;
+  private pendingAddedKong: PendingAddedKong | null = null;
   private outcome: RoundOutcome | null = null;
 
   constructor(options: StartRoundOptions) {
@@ -177,6 +201,9 @@ export class SingleRoundEngine {
       pendingDiscard: this.pendingDiscard
         ? { seat: this.pendingDiscard.seat, tile: this.pendingDiscard.tile }
         : null,
+      pendingAddedKong: this.pendingAddedKong
+        ? { ...this.pendingAddedKong }
+        : null,
       reactionClaims: [...this.reactionClaims.values()].map((claim) => ({
         ...claim,
         tileIds: [...claim.tileIds],
@@ -217,6 +244,162 @@ export class SingleRoundEngine {
     });
     this.assertConservation();
     return tile;
+  }
+
+  declareConcealedKong(
+    seat: number,
+    tileIds: readonly number[],
+    expectedVersion: number,
+  ): DeclaredMeld {
+    this.assertVersion(expectedVersion);
+    this.assertPlayingTurn(seat, "DISCARD");
+    if (tileIds.length !== 4 || new Set(tileIds).size !== 4) {
+      throw new RoundEngineError("INVALID_KONG", "A concealed kong requires four unique tiles");
+    }
+    const selected = tileIds.map((tileId) => {
+      const tile = this.hands[seat].find((candidate) => candidate.id === tileId);
+      if (!tile) throw new RoundEngineError("TILE_NOT_IN_HAND", `Tile ${tileId} is not in seat ${seat}'s hand`);
+      return tile;
+    });
+    if (selected.some((tile) => tile.kind !== selected[0].kind)) {
+      throw new RoundEngineError("INVALID_KONG", "A concealed kong requires four matching tiles");
+    }
+    const tiles = tileIds.map((tileId) => this.removeTileFromHand(seat, tileId));
+    const meld: DeclaredMeld = {
+      type: "GANG",
+      tiles,
+      fromSeat: seat,
+      claimedTileId: null,
+      kongType: "CONCEALED",
+    };
+    this.melds[seat].push(meld);
+    this.turnAction = "DRAW_REPLACEMENT";
+    this.publish("KONG_DECLARED", {
+      seat,
+      kongType: "CONCEALED",
+      tileIds: tiles.map((tile) => tile.id),
+      nextAction: this.turnAction,
+    });
+    this.assertConservation();
+    return meld;
+  }
+
+  proposeAddedKong(
+    seat: number,
+    tileId: number,
+    expectedVersion: number,
+  ): PendingAddedKong {
+    this.assertVersion(expectedVersion);
+    this.assertPlayingTurn(seat, "DISCARD");
+    const tile = this.hands[seat].find((candidate) => candidate.id === tileId);
+    if (!tile) throw new RoundEngineError("TILE_NOT_IN_HAND", `Tile ${tileId} is not in seat ${seat}'s hand`);
+    const meldIndex = this.melds[seat].findIndex(
+      (meld) => meld.type === "PENG" && meld.tiles[0]?.kind === tile.kind,
+    );
+    if (meldIndex < 0) {
+      throw new RoundEngineError("INVALID_KONG", "Added kong requires an existing matching PENG");
+    }
+    this.pendingAddedKong = { seat, tile, meldIndex };
+    this.reactionClaims.clear();
+    this.phase = "ROB_KONG_WINDOW";
+    this.turnAction = null;
+    this.publish("ADDED_KONG_PROPOSED", { seat, tileId, tileKind: tile.kind });
+    return this.pendingAddedKong;
+  }
+
+  submitRobKongReaction(
+    seat: number,
+    action: "HU" | "PASS",
+    expectedVersion: number,
+  ): ReactionClaim {
+    this.assertVersion(expectedVersion);
+    this.assertRobKongWindow();
+    assertSeat(seat);
+    const pending = this.pendingAddedKong!;
+    if (seat === pending.seat) {
+      throw new RoundEngineError("DISCARDER_CANNOT_CLAIM", "The kong declarer cannot rob their own kong");
+    }
+    if (this.reactionClaims.has(seat)) {
+      throw new RoundEngineError("REACTION_ALREADY_SUBMITTED", `Seat ${seat} has already responded`);
+    }
+    if (action === "HU") {
+      const evaluation = evaluateHand({
+        concealedCounts: countsFromTiles([...this.hands[seat], pending.tile]),
+        openMelds: this.evaluationMelds(seat),
+      });
+      if (!evaluation.isEligiblePoyangWin) {
+        throw new RoundEngineError("ILLEGAL_WIN", "The hand cannot rob this kong");
+      }
+    }
+    const claim: ReactionClaim = { seat, action, tileIds: [] };
+    this.reactionClaims.set(seat, claim);
+    this.publish("ROB_KONG_REACTION_SUBMITTED", {
+      seat,
+      action,
+      respondedSeats: [...this.reactionClaims.keys()],
+    });
+    return claim;
+  }
+
+  resolveRobKongReactions(
+    expectedVersion: number,
+    forceTimeout = false,
+  ): ReactionResolution {
+    this.assertVersion(expectedVersion);
+    this.assertRobKongWindow();
+    if (!forceTimeout && this.reactionClaims.size < 3) {
+      throw new RoundEngineError("REACTIONS_PENDING", "Rob-kong responses are still pending");
+    }
+    const pending = this.pendingAddedKong!;
+    const resolution = resolveReactionClaims(
+      pending.seat,
+      [...this.reactionClaims.values()],
+      this.reactionPriority,
+    );
+    this.publish("ROB_KONG_RESOLVED", {
+      action: resolution.action,
+      seat: resolution.claim?.seat ?? null,
+      kongSeat: pending.seat,
+      tileId: pending.tile.id,
+    });
+    if (resolution.action === "HU") {
+      const winnerSeat = resolution.claim!.seat;
+      const evaluation = evaluateHand({
+        concealedCounts: countsFromTiles([...this.hands[winnerSeat], pending.tile]),
+        openMelds: this.evaluationMelds(winnerSeat),
+      });
+      this.settle({
+        reason: "ROB_KONG_WIN",
+        winnerSeat,
+        loserSeat: pending.seat,
+        winningTileId: pending.tile.id,
+        patterns: evaluation.patterns,
+      });
+      return resolution;
+    }
+
+    const tile = this.removeTileFromHand(pending.seat, pending.tile.id);
+    const original = this.melds[pending.seat][pending.meldIndex];
+    this.melds[pending.seat][pending.meldIndex] = {
+      type: "GANG",
+      tiles: [...original.tiles, tile],
+      fromSeat: original.fromSeat,
+      claimedTileId: original.claimedTileId,
+      kongType: "ADDED",
+    };
+    this.pendingAddedKong = null;
+    this.reactionClaims.clear();
+    this.phase = "PLAYING";
+    this.currentSeat = pending.seat;
+    this.turnAction = "DRAW_REPLACEMENT";
+    this.publish("KONG_DECLARED", {
+      seat: pending.seat,
+      kongType: "ADDED",
+      tileIds: this.melds[pending.seat][pending.meldIndex].tiles.map((item) => item.id),
+      nextAction: this.turnAction,
+    });
+    this.assertConservation();
+    return resolution;
   }
 
   submitReaction(
@@ -424,6 +607,7 @@ export class SingleRoundEngine {
       tiles: [...claimedFromHand, pending.tile],
       fromSeat: pending.seat,
       claimedTileId: pending.tile.id,
+      kongType: type === "GANG" ? "EXPOSED" : null,
     };
     this.melds[claim.seat].push(meld);
     this.pendingDiscard = null;
@@ -534,6 +718,7 @@ export class SingleRoundEngine {
     this.currentSeat = null;
     this.turnAction = null;
     this.reactionClaims.clear();
+    this.pendingAddedKong = null;
     this.publish("ROUND_SETTLED", {
       ...outcome,
       patterns: [...outcome.patterns],
@@ -580,6 +765,16 @@ export class SingleRoundEngine {
     }
     if (!this.pendingDiscard) {
       throw new RoundEngineError("NO_PENDING_DISCARD", "There is no pending discard");
+    }
+  }
+
+  private assertRobKongWindow(): void {
+    this.assertActive();
+    if (this.phase !== "ROB_KONG_WINDOW") {
+      throw new RoundEngineError("WRONG_PHASE", `Expected ROB_KONG_WINDOW, current phase is ${this.phase}`);
+    }
+    if (!this.pendingAddedKong) {
+      throw new RoundEngineError("NO_PENDING_KONG", "There is no pending added kong");
     }
   }
 
