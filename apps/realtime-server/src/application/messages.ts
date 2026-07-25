@@ -3,6 +3,7 @@ import type { ReactionAction } from "@poyang-mahjong/game-rules";
 export type RealtimeCommand =
   | Command<"room.create", Record<string, never>>
   | Command<"room.join", { readonly roomCode: string }>
+  | Command<"room.leave", Record<string, never>>
   | Command<"room.ready", { readonly ready: boolean }>
   | Command<"room.start", Record<string, never>>
   | Command<"game.draw", Record<string, never>>
@@ -42,4 +43,6 @@ export interface DispatchResult {
   readonly roomId: string;
   readonly roomCode: string;
   readonly events: readonly OutboundEvent[];
+  readonly leftUserId?: string;
+  readonly roomClosed?: boolean;
 }

@@ -137,3 +137,74 @@ test("stale room version is rejected", () => {
       && error.code === "STALE_VERSION",
   );
 });
+
+
+test("players can leave a waiting room and the owner can close it", () => {
+  const rooms = new InMemoryRoomRepository();
+  let roomSequence = 0;
+  let codeSequence = 123455;
+  const router = new CommandRouter({
+    rooms,
+    rules: DEVELOPMENT_ROOM_RULES,
+    createRoomId: () => `room-leave-${++roomSequence}`,
+    createRoomCode: () => String(++codeSequence),
+  });
+
+  const created = router.handle("owner", {
+    type: "room.create",
+    requestId: "leave-create-1",
+    roomId: null,
+    expectedVersion: 0,
+    payload: {},
+  });
+  router.handle("guest", {
+    type: "room.join",
+    requestId: "leave-join-1",
+    roomId: null,
+    expectedVersion: 0,
+    payload: { roomCode: created.roomCode },
+  });
+  const room = rooms.getById(created.roomId);
+  assert.ok(room);
+
+  const guestLeft = router.handle("guest", {
+    type: "room.leave",
+    requestId: "guest-leave-1",
+    roomId: room.roomId,
+    expectedVersion: room.getVersion(),
+    payload: {},
+  });
+  assert.equal(guestLeft.leftUserId, "guest");
+  assert.equal(guestLeft.roomClosed, false);
+  assert.deepEqual(room.getPublicSnapshot().players.map((player) => player.userId), ["owner"]);
+  assert.equal(guestLeft.events.some((event) => event.type === "room.left"), true);
+
+  router.handle("guest", {
+    type: "room.join",
+    requestId: "leave-join-2",
+    roomId: null,
+    expectedVersion: 0,
+    payload: { roomCode: created.roomCode },
+  });
+  assert.equal(room.getPlayer("guest")?.seat, 1);
+
+  const ownerLeft = router.handle("owner", {
+    type: "room.leave",
+    requestId: "owner-leave-1",
+    roomId: room.roomId,
+    expectedVersion: room.getVersion(),
+    payload: {},
+  });
+  assert.equal(ownerLeft.roomClosed, true);
+  assert.equal(rooms.getById(room.roomId), null);
+  assert.equal(rooms.getByCode(created.roomCode), null);
+
+  const recreated = router.handle("owner", {
+    type: "room.create",
+    requestId: "leave-create-2",
+    roomId: null,
+    expectedVersion: 0,
+    payload: {},
+  });
+  assert.notEqual(recreated.roomId, created.roomId);
+});

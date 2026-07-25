@@ -125,6 +125,31 @@ export class RoomAggregate {
     return player.seat;
   }
 
+  leave(userId: string, expectedVersion: number): { readonly closed: boolean } {
+    this.assertVersion(expectedVersion);
+    this.assertWaiting();
+    const playerIndex = this.players.findIndex(
+      (player) => player.userId === userId,
+    );
+    if (playerIndex < 0) {
+      throw new RoomError("PLAYER_NOT_FOUND", `User ${userId} is not in the room`);
+    }
+
+    if (userId === this.ownerId) {
+      this.players.splice(0);
+      this.phase = "CLOSED";
+      this.version += 1;
+      return { closed: true };
+    }
+
+    this.players.splice(playerIndex, 1);
+    this.players.forEach((player, seat) => {
+      player.seat = seat;
+    });
+    this.version += 1;
+    return { closed: false };
+  }
+
   setReady(userId: string, ready: boolean, expectedVersion: number): void {
     this.assertVersion(expectedVersion);
     this.assertWaiting();

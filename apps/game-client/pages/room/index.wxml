@@ -1,1 +1,22 @@
-<view class="room-page"><view class="room-top"><text>房间号</text><view class="room-code" bindtap="copyCode">{{roomCode}}</view><text class="room-hint">点击复制并邀请好友</text></view><view class="seat-grid"><view wx:for="{{players}}" wx:key="seat" class="seat-card {{item.empty?'empty':''}}"><view class="seat-avatar">{{item.empty?'?':item.seat+1}}</view><text class="seat-name">{{item.name}}</text><text class="seat-state {{item.ready?'ready':''}}">{{item.empty?'空位':item.ready?'已准备':'未准备'}}</text></view></view><view class="room-actions"><button class="secondary-button" bindtap="toggleReady">{{myReady?'取消准备':'准备'}}</button><button wx:if="{{isOwner}}" class="primary-button room-start" disabled="{{!canStart}}" bindtap="startGame">房主开局</button><text wx:else class="wait-owner">等待房主开局</text></view><text class="connection-label">{{connectionState}}</text><text wx:if="{{errorText}}" class="network-error">{{errorText}}</text></view>
+<view class="room-page">
+  <view class="room-top">
+    <text>房间号</text>
+    <view class="room-code" bindtap="copyCode">{{roomCode}}</view>
+    <text class="room-hint">点击复制并邀请好友</text>
+  </view>
+  <view class="seat-grid">
+    <view wx:for="{{players}}" wx:key="seat" class="seat-card {{item.empty?'empty':''}}">
+      <view class="seat-avatar">{{item.empty?'?':item.seat+1}}</view>
+      <text class="seat-name">{{item.name}}</text>
+      <text class="seat-state {{item.ready?'ready':''}}">{{item.empty?'空位':item.ready?'已准备':'未准备'}}</text>
+    </view>
+  </view>
+  <view class="room-actions">
+    <button class="secondary-button" bindtap="toggleReady">{{myReady?'取消准备':'准备'}}</button>
+    <button wx:if="{{isOwner}}" class="primary-button room-start" disabled="{{!canStart}}" bindtap="startGame">房主开局</button>
+    <text wx:else class="wait-owner">等待房主开局</text>
+    <button class="leave-button" bindtap="leaveRoom">退出房间</button>
+  </view>
+  <text class="connection-label">{{connectionState}}</text>
+  <text wx:if="{{errorText}}" class="network-error">{{errorText}}</text>
+</view>

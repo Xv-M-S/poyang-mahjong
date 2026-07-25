@@ -94,6 +94,16 @@ class RealtimeClient {
     this.sendCommand("game.reconnect", {}, { roomId: this.publicSnapshot.roomId });
   }
 
+  clearRoom(patch) {
+    this.publicSnapshot = null;
+    this.privateSnapshot = null;
+    this.onState(Object.assign({
+      connectionState: this.connected ? "CONNECTED" : "CONNECTING",
+      publicSnapshot: null,
+      privateSnapshot: null
+    }, patch || {}));
+  }
+
   handleMessage(raw) {
     let message;
     try {
@@ -108,12 +118,24 @@ class RealtimeClient {
       if (code === "STALE_VERSION") this.requestSnapshot();
       return;
     }
-    if (message.type === "room.snapshot") this.publicSnapshot = message.payload;
+    if (message.type === "room.left") {
+      this.clearRoom({ roomLeft: true, roomClosed: Boolean(message.payload && message.payload.closed), message });
+      return;
+    }
+    if (message.type === "room.snapshot") {
+      if (message.payload && message.payload.phase === "CLOSED") {
+        this.clearRoom({ roomLeft: true, roomClosed: true, message });
+        return;
+      }
+      this.publicSnapshot = message.payload;
+    }
     if (message.type === "room.snapshot.private") this.privateSnapshot = message.payload;
     this.onState({
       connectionState: this.connected ? "CONNECTED" : "CONNECTING",
       publicSnapshot: this.publicSnapshot,
       privateSnapshot: this.privateSnapshot,
+      roomLeft: false,
+      roomClosed: false,
       message
     });
   }

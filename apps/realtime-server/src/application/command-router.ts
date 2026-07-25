@@ -48,6 +48,31 @@ export class CommandRouter {
         ? this.createRoom(userId, command)
         : this.resolveRoom(command);
 
+    if (command.type === "room.leave") {
+      const { closed } = room.leave(userId, command.expectedVersion);
+      const events = [
+        ...projectRoomSnapshots(room),
+        {
+          audience: { kind: "USER" as const, userId },
+          type: "room.left",
+          roomId: room.roomId,
+          version: room.getVersion(),
+          payload: { closed },
+        },
+      ];
+      if (closed) this.rooms.delete(room.roomId);
+      else this.rooms.save(room);
+      const result: DispatchResult = {
+        roomId: room.roomId,
+        roomCode: room.roomCode,
+        events,
+        leftUserId: userId,
+        roomClosed: closed,
+      };
+      this.idempotency.save(userId, command.requestId, result);
+      return result;
+    }
+
     switch (command.type) {
       case "room.create":
         break;

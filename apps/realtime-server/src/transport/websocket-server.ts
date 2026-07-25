@@ -59,8 +59,12 @@ export function createRealtimeServer(
       try {
         const command = decodeCommand(raw.toString());
         const result = router.handle(userId, command);
-        connections.bindRoom(userId, result.roomId);
+        if (!result.leftUserId) connections.bindRoom(userId, result.roomId);
         dispatchEvents(result.events, connections);
+        if (result.leftUserId) {
+          if (result.roomClosed) connections.unbindRoomAll(result.roomId);
+          else connections.unbindRoom(result.leftUserId, result.roomId);
+        }
       } catch (error) {
         sendError(socket, error);
       }

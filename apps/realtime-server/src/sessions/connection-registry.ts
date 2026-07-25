@@ -23,6 +23,17 @@ export class ConnectionRegistry {
     this.usersByRoom.set(roomId, users);
   }
 
+  unbindRoom(userId: string, roomId: string): void {
+    const users = this.usersByRoom.get(roomId);
+    if (!users) return;
+    users.delete(userId);
+    if (users.size === 0) this.usersByRoom.delete(roomId);
+  }
+
+  unbindRoomAll(roomId: string): void {
+    this.usersByRoom.delete(roomId);
+  }
+
   sendUser(userId: string, message: unknown): void {
     const serialized = JSON.stringify(message);
     for (const socket of this.socketsByUser.get(userId) ?? []) {
