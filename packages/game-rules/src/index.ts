@@ -1,3 +1,4 @@
+export * from "./claim-resolver.ts";
 export * from "./config.ts";
 export * from "./hu-detector.ts";
 export * from "./patterns.ts";
