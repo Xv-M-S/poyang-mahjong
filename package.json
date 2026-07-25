@@ -8,10 +8,11 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "node --test packages/game-rules/test/*.test.ts packages/protocol/test/*.test.ts apps/realtime-server/test/*.test.ts",
+    "test": "node --test packages/game-rules/test/*.test.ts packages/protocol/test/*.test.ts apps/realtime-server/test/*.test.ts apps/game-client/test/*.test.ts",
     "test:rules": "node --test packages/game-rules/test/*.test.ts",
     "test:realtime": "node --test apps/realtime-server/test/*.test.ts",
-    "start:realtime": "node apps/realtime-server/src/index.ts"
+    "start:realtime": "node apps/realtime-server/src/index.ts",
+    "test:client": "node --test apps/game-client/test/*.test.ts"
   },
   "engines": {
     "node": ">=22.18.0"

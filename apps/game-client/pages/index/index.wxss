@@ -137,8 +137,8 @@
 
 .mahjong-table {
   position: relative;
-  height: calc(100vh - 376rpx);
-  min-height: 640rpx;
+  height: calc(100vh - 540rpx);
+  min-height: 500rpx;
   margin: 18rpx;
   border: 2rpx solid rgba(215, 183, 91, 0.32);
   border-radius: 34rpx;
@@ -249,8 +249,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  height: 248rpx;
-  padding: 14rpx 0 18rpx;
+  height: 410rpx;
+  padding: 12rpx 0 16rpx;
   background: linear-gradient(180deg, #0b3f34, #062a24);
   border-top: 2rpx solid rgba(255, 255, 255, 0.08);
 }
@@ -334,3 +334,131 @@
 
 .result-title { color: #f6d788; font-size: 48rpx; font-weight: 800; }
 .result-message { margin-top: 22rpx; color: rgba(255, 255, 255, 0.72); font-size: 26rpx; }
+
+
+.meld-scroll {
+  width: 100%;
+  height: 76rpx;
+  padding: 0 20rpx;
+  white-space: nowrap;
+}
+
+.meld-row {
+  display: inline-flex;
+  gap: 14rpx;
+  height: 72rpx;
+}
+
+.meld-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 5rpx 10rpx;
+  border-radius: 10rpx;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.meld-label {
+  color: #f6d788;
+  font-size: 19rpx;
+}
+
+.meld-tiles {
+  display: flex;
+  gap: 2rpx;
+}
+
+.meld-tile {
+  width: 34rpx;
+  height: 54rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4rpx;
+  background: #fff9e7;
+  font-size: 21rpx;
+  font-weight: 700;
+  box-shadow: inset 0 -4rpx 0 #d9cfaa;
+}
+
+.meld-unit {
+  font-size: 12rpx;
+}
+
+.action-bar {
+  min-height: 76rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  padding: 5rpx 18rpx;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.action-button {
+  min-width: 92rpx;
+  height: 62rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 4rpx 16rpx;
+  border: 0;
+  border-radius: 14rpx;
+  background: #d9b85c;
+  color: #173b31;
+  font-size: 27rpx;
+  font-weight: 800;
+  line-height: 1.05;
+  box-shadow: 0 7rpx 16rpx rgba(0, 0, 0, 0.2);
+}
+
+.action-button::after {
+  border: 0;
+}
+
+.action-detail {
+  max-width: 180rpx;
+  margin-top: 4rpx;
+  overflow: hidden;
+  color: rgba(23, 59, 49, 0.72);
+  font-size: 16rpx;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.action-hu {
+  background: linear-gradient(135deg, #ef6559, #c6372d);
+  color: #ffffff;
+}
+
+.action-gang {
+  background: linear-gradient(135deg, #efcf74, #d4a13c);
+}
+
+.action-peng,
+.action-chi {
+  background: linear-gradient(135deg, #f0e0aa, #d8b85c);
+}
+
+.action-pass {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.result-patterns {
+  margin-top: 20rpx;
+  color: #f6d788;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+
+.player-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}

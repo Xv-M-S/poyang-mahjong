@@ -28,7 +28,7 @@
       <view class="avatar">{{item.initial}}</view>
       <view class="opponent-meta">
         <text>{{item.name}}</text>
-        <text class="tile-count">{{item.count}} 张</text>
+        <text class="tile-count">{{item.count}} 张 · {{item.meldCount}} 组</text>
       </view>
     </view>
 
@@ -63,9 +63,30 @@
   </view>
 
   <view class="player-panel {{currentSeat === 0 ? 'my-turn' : ''}}">
+    <scroll-view wx:if="{{playerMelds.length}}" class="meld-scroll" scroll-x show-scrollbar="false">
+      <view class="meld-row">
+        <view wx:for="{{playerMelds}}" wx:key="index" class="meld-group">
+          <text class="meld-label">{{item.label}}</text>
+          <view class="meld-tiles">
+            <view wx:for="{{item.tiles}}" wx:for-item="meldTile" wx:key="id" class="meld-tile suit-{{meldTile.suitClass}}">
+              <text>{{meldTile.symbol}}</text><text class="meld-unit">{{meldTile.unit}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <view wx:if="{{availableActions.length}}" class="action-bar">
+      <button wx:for="{{availableActions}}" wx:key="key" class="action-button action-{{item.actionClass}}" data-action="{{item.action}}" data-source="{{item.source}}" data-choice-index="{{item.choiceIndex}}" data-kind="{{item.kind}}" bindtap="chooseAction">
+        <text>{{item.label}}</text>
+        <text wx:if="{{item.detail}}" class="action-detail">{{item.detail}}</text>
+      </button>
+      <button wx:if="{{awaitingReaction}}" class="action-button action-pass" bindtap="passReaction">过</button>
+    </view>
+
     <view class="player-status">
       <text>{{playerStatusText}}</text>
-      <button class="discard-button" disabled="{{currentSeat !== 0 || selectedId === null || finished}}" bindtap="discardSelected">出牌</button>
+      <button class="discard-button" disabled="{{currentSeat !== 0 || phase !== 'DISCARD' || selectedId === null || finished}}" bindtap="discardSelected">出牌</button>
     </view>
     <scroll-view class="hand-scroll" scroll-x enhanced show-scrollbar="false">
       <view class="hand-row">
@@ -79,7 +100,8 @@
 
   <view wx:if="{{finished}}" class="result-mask">
     <view class="result-card">
-      <text class="result-title">本局结束</text>
+      <text class="result-title">{{resultTitle}}</text>
+      <text wx:if="{{winPatternText}}" class="result-patterns">{{winPatternText}}</text>
       <text class="result-message">{{message}}</text>
       <button class="primary-button compact" bindtap="startGame">再来一局</button>
     </view>
