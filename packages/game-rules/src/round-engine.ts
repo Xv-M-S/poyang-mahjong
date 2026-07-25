@@ -118,6 +118,16 @@ export interface RoundSnapshot {
   readonly outcome: RoundOutcome | null;
 }
 
+
+export type AvailableRoundActionType =
+  | "DRAW" | "DISCARD" | "CHI" | "PENG" | "GANG" | "HU" | "PASS"
+  | "KONG_CONCEALED" | "KONG_ADDED" | "ROB_KONG_HU";
+
+export interface AvailableRoundAction {
+  readonly type: AvailableRoundActionType;
+  readonly tileIds: readonly number[];
+}
+
 export interface StartRoundOptions {
   readonly roundId: string;
   readonly dealerSeat?: number;
@@ -213,6 +223,76 @@ export class SingleRoundEngine {
         : null,
     };
   }
+
+
+  getAvailableActions(seat: number): readonly AvailableRoundAction[] {
+    assertSeat(seat);
+    if (this.phase === "ROUND_SETTLEMENT") return [];
+    const hand = this.hands[seat];
+
+    if (this.phase === "PLAYING") {
+      if (seat !== this.currentSeat) return [];
+      if (this.turnAction === "DRAW" || this.turnAction === "DRAW_REPLACEMENT") {
+        return [{ type: "DRAW", tileIds: [] }];
+      }
+      if (this.turnAction !== "DISCARD") return [];
+      const actions: AvailableRoundAction[] = [
+        { type: "DISCARD", tileIds: hand.map((tile) => tile.id) },
+      ];
+      const evaluation = evaluateHand({
+        concealedCounts: countsFromTiles(hand),
+        openMelds: this.evaluationMelds(seat),
+      });
+      if (evaluation.isEligiblePoyangWin) actions.push({ type: "HU", tileIds: [] });
+      const byKind = new Map<number, Tile[]>();
+      for (const tile of hand) byKind.set(tile.kind, [...(byKind.get(tile.kind) ?? []), tile]);
+      for (const tiles of byKind.values()) {
+        if (tiles.length === 4) actions.push({ type: "KONG_CONCEALED", tileIds: tiles.map((tile) => tile.id) });
+      }
+      for (const meld of this.melds[seat]) {
+        if (meld.type !== "PENG") continue;
+        const tile = hand.find((candidate) => candidate.kind === meld.tiles[0].kind);
+        if (tile) actions.push({ type: "KONG_ADDED", tileIds: [tile.id] });
+      }
+      return actions;
+    }
+
+    if (this.reactionClaims.has(seat)) return [];
+    if (this.phase === "ROB_KONG_WINDOW") {
+      const pending = this.pendingAddedKong!;
+      if (seat === pending.seat) return [];
+      const actions: AvailableRoundAction[] = [{ type: "PASS", tileIds: [] }];
+      const evaluation = evaluateHand({
+        concealedCounts: countsFromTiles([...hand, pending.tile]),
+        openMelds: this.evaluationMelds(seat),
+      });
+      if (evaluation.isEligiblePoyangWin) actions.unshift({ type: "ROB_KONG_HU", tileIds: [] });
+      return actions;
+    }
+
+    if (this.phase !== "REACTION_WINDOW" || !this.pendingDiscard || seat === this.pendingDiscard.seat) return [];
+    const pending = this.pendingDiscard.tile;
+    const actions: AvailableRoundAction[] = [{ type: "PASS", tileIds: [] }];
+    const evaluation = evaluateHand({
+      concealedCounts: countsFromTiles([...hand, pending]),
+      openMelds: this.evaluationMelds(seat),
+    });
+    if (evaluation.isEligiblePoyangWin) actions.unshift({ type: "HU", tileIds: [] });
+    const matches = hand.filter((tile) => tile.kind === pending.kind);
+    if (matches.length >= 3) actions.push({ type: "GANG", tileIds: matches.slice(0, 3).map((tile) => tile.id) });
+    if (matches.length >= 2) actions.push({ type: "PENG", tileIds: matches.slice(0, 2).map((tile) => tile.id) });
+    if (seat === (this.pendingDiscard.seat + 1) % 4) {
+      for (let left = 0; left < hand.length; left += 1) {
+        for (let right = left + 1; right < hand.length; right += 1) {
+          if (formsSequence([hand[left], hand[right], pending])) {
+            actions.push({ type: "CHI", tileIds: [hand[left].id, hand[right].id] });
+          }
+        }
+      }
+    }
+    return actions;
+  }
+
 
   getEvents(afterSequence = 0): readonly RoundEvent[] {
     return this.events.filter((event) => event.sequence > afterSequence);

@@ -616,3 +616,5 @@
 .ranking-line text {
   width: 33.333%;
 }
+
+.online-entry{width:420rpx;margin-top:20rpx;border:1rpx solid rgba(246,215,136,.55);border-radius:999rpx;background:rgba(255,255,255,.06);color:#f6d788;font-size:30rpx}.online-entry::after{border:0}

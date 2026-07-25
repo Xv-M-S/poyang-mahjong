@@ -36,6 +36,10 @@ Page({
     this.clearBotTimer();
   },
 
+  openNetwork() {
+    wx.navigateTo({ url: "/pages/network/index" });
+  },
+
   startGame() {
     this.clearBotTimer();
     this.game = createLocalGame();

@@ -2,6 +2,7 @@ import {
   MatchEngine,
   SingleRoundEngine,
   type MatchSnapshot,
+  type AvailableRoundAction,
   type ReactionAction,
   type RoundSnapshot,
 } from "@poyang-mahjong/game-rules";
@@ -53,6 +54,8 @@ export interface PublicRoundSnapshot {
     readonly tileIds: readonly number[];
     readonly tileKinds: readonly number[];
   }[])[];
+  readonly pendingDiscard: { readonly seat: number; readonly tileId: number; readonly tileKind: number } | null;
+  readonly respondedSeats: readonly number[];
   readonly outcome: RoundSnapshot["outcome"];
 }
 
@@ -65,6 +68,7 @@ export interface PrivateRoomSnapshot {
     readonly id: number;
     readonly kind: number;
   }[];
+  readonly availableActions: readonly AvailableRoundAction[];
 }
 
 export interface CreateRoomOptions {
@@ -287,6 +291,7 @@ export class RoomAggregate {
           id: tile.id,
           kind: tile.kind,
         })) ?? [],
+      availableActions: this.round?.getAvailableActions(player.seat) ?? [],
     };
   }
 
@@ -382,6 +387,10 @@ function projectPublicRound(round: RoundSnapshot): PublicRoundSnapshot {
         tileKinds: meld.tiles.map((tile) => tile.kind),
       })),
     ),
+    pendingDiscard: round.pendingDiscard
+      ? { seat: round.pendingDiscard.seat, tileId: round.pendingDiscard.tile.id, tileKind: round.pendingDiscard.tile.kind }
+      : null,
+    respondedSeats: round.reactionClaims.map((claim) => claim.seat),
     outcome: round.outcome,
   };
 }

@@ -65,6 +65,8 @@ test("four players can join, ready, and start a private-hand round", () => {
   assert.equal(privateEvents.length, 4);
   assert.equal(room.getPrivateSnapshot("user-0").hand.length, 14);
   assert.equal(room.getPrivateSnapshot("user-1").hand.length, 13);
+  assert.equal(room.getPrivateSnapshot("user-0").availableActions[0]?.type, "DISCARD");
+  assert.deepEqual(room.getPrivateSnapshot("user-1").availableActions, []);
 
   const dealerTileId = room.getPrivateSnapshot("user-0").hand[0].id;
   router.handle("user-0", {
@@ -76,6 +78,8 @@ test("four players can join, ready, and start a private-hand round", () => {
   });
   assert.equal(room.getPublicSnapshot().round?.phase, "REACTION_WINDOW");
   assert.equal(room.getPrivateSnapshot("user-0").hand.length, 13);
+  assert.ok(room.getPublicSnapshot().round?.pendingDiscard);
+  assert.equal(room.getPrivateSnapshot("user-1").availableActions.some((action) => action.type === "PASS"), true);
 });
 
 test("duplicate requestId returns the cached result without a second room", () => {

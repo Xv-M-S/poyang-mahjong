@@ -1,6 +1,9 @@
 {
   "pages": [
-    "pages/index/index"
+    "pages/index/index",
+    "pages/network/index",
+    "pages/room/index",
+    "pages/online-table/index"
   ],
   "window": {
     "navigationBarTitleText": "鄱阳麻将",

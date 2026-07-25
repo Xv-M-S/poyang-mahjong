@@ -102,3 +102,38 @@ function onceClosed(socket: WebSocket): Promise<void> {
   if (socket.readyState === WebSocket.CLOSED) return Promise.resolve();
   return new Promise((resolve) => socket.once("close", () => resolve()));
 }
+
+
+test("four WebSocket clients join, ready, and receive isolated private hands", async () => {
+  const server = createRealtimeServer({ config: { host: "127.0.0.1", port: 0, roomRules: DEVELOPMENT_ROOM_RULES } });
+  await onceListening(server);
+  const address = server.address();
+  assert.ok(address);
+  const sockets = Array.from({ length: 4 }, (_, seat) => new WebSocket(`ws://127.0.0.1:${address.port}?userId=ws-user-${seat}`));
+  const inboxes = sockets.map(createMessageInbox);
+  await Promise.all(inboxes.map((inbox) => inbox.waitFor((message) => message.type === "session.connected")));
+  sockets[0].send(JSON.stringify({ type: "room.create", requestId: "multi-create", roomId: null, expectedVersion: 0, payload: {} }));
+  let publicState = await inboxes[0].waitFor((message) => message.type === "room.snapshot");
+  const roomId = publicState.roomId;
+  const roomCode = publicState.payload.roomCode;
+  for (let seat = 1; seat < 4; seat += 1) {
+    sockets[seat].send(JSON.stringify({ type: "room.join", requestId: `multi-join-${seat}`, roomId: null, expectedVersion: 0, payload: { roomCode } }));
+    publicState = await inboxes[seat].waitFor((message) => message.type === "room.snapshot" && message.version > publicState.version);
+  }
+  for (let seat = 0; seat < 4; seat += 1) {
+    const previousVersion = publicState.version;
+    sockets[seat].send(JSON.stringify({ type: "room.ready", requestId: `multi-ready-${seat}`, roomId, expectedVersion: previousVersion, payload: { ready: true } }));
+    publicState = await inboxes[seat].waitFor((message) => message.type === "room.snapshot" && message.version > previousVersion);
+  }
+  const previousVersion = publicState.version;
+  sockets[0].send(JSON.stringify({ type: "room.start", requestId: "multi-start", roomId, expectedVersion: previousVersion, payload: {} }));
+  const privateStates = await Promise.all(inboxes.map((inbox) => inbox.waitFor((message) => message.type === "room.snapshot.private" && message.version > previousVersion && message.payload.hand.length >= 13)));
+  const playing = await inboxes[0].waitFor((message) => message.type === "room.snapshot" && message.version > previousVersion && message.payload.phase === "PLAYING");
+  assert.equal("hands" in playing.payload.round, false);
+  assert.deepEqual(privateStates.map((state) => state.payload.seat).sort(), [0, 1, 2, 3]);
+  assert.deepEqual(privateStates.map((state) => state.payload.hand.length).sort(), [13, 13, 13, 14]);
+  const allPrivateIds = privateStates.flatMap((state) => state.payload.hand.map((tile) => tile.id));
+  assert.equal(new Set(allPrivateIds).size, 53);
+  await Promise.all(sockets.map(async (socket) => { const closed = onceClosed(socket); socket.close(); await closed; }));
+  await server.close();
+});

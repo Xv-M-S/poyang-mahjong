@@ -1,0 +1,15 @@
+<view class="network-page">
+  <text class="network-title">联网房间</text>
+  <text class="network-subtitle">连接本地实时服务，与四名真实玩家对局</text>
+  <view class="network-card">
+    <text class="field-label">实时服务地址</text>
+    <input class="network-input" value="{{serverUrl}}" bindinput="onServerInput" />
+    <view class="connection-row"><text class="connection-dot state-{{connectionState}}"></text><text>{{connectionState}}</text></view>
+    <button class="primary-button network-button" bindtap="createRoom">创建房间</button>
+    <view class="divider"><text>或加入房间</text></view>
+    <input class="network-input room-code-input" type="number" maxlength="6" placeholder="输入6位房间号" value="{{roomCode}}" bindinput="onRoomCodeInput" />
+    <button class="secondary-button" bindtap="joinRoom">加入房间</button>
+    <text wx:if="{{errorText}}" class="network-error">{{errorText}}</text>
+  </view>
+  <text class="network-tip">开发者工具连接本机使用 127.0.0.1；真机联调需改为电脑局域网地址，并关闭合法域名校验。</text>
+</view>

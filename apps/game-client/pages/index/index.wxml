@@ -2,7 +2,8 @@
   <view class="brand-tile">鄱</view>
   <text class="brand-title">鄱阳麻将</text>
   <text class="brand-subtitle">四人单机完整比赛</text>
-  <button class="primary-button" bindtap="startGame">开始对局</button>
+  <button class="primary-button" bindtap="startGame">单机对局</button>
+  <button class="online-entry" bindtap="openNetwork">联网房间</button>
   <view class="feature-row">
     <text>四局累计</text>
     <text>补杠抢杠</text>
