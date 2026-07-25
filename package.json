@@ -3,10 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "test": "node --test packages/game-rules/test/*.test.ts packages/protocol/test/*.test.ts",
-    "test:rules": "node --test packages/game-rules/test/*.test.ts"
+    "test": "node --test packages/game-rules/test/*.test.ts packages/protocol/test/*.test.ts apps/realtime-server/test/*.test.ts",
+    "test:rules": "node --test packages/game-rules/test/*.test.ts",
+    "test:realtime": "node --test apps/realtime-server/test/*.test.ts",
+    "start:realtime": "node apps/realtime-server/src/index.ts"
   },
   "engines": {
     "node": ">=22.18.0"

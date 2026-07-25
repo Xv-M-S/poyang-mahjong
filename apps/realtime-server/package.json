@@ -1,0 +1,15 @@
+{
+  "name": "@poyang-mahjong/realtime-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.ts",
+    "test": "node --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@poyang-mahjong/game-rules": "*",
+    "@poyang-mahjong/protocol": "*",
+    "ws": "^8.18.0"
+  }
+}
