@@ -1,21 +1,27 @@
 <view wx:if="{{screen === 'lobby'}}" class="lobby">
   <view class="brand-tile">鄱</view>
   <text class="brand-title">鄱阳麻将</text>
-  <text class="brand-subtitle">四人本地摸打演示</text>
+  <text class="brand-subtitle">四人单机完整比赛</text>
   <button class="primary-button" bindtap="startGame">开始对局</button>
   <view class="feature-row">
-    <text>136 张标准牌墙</text>
-    <text>自动洗牌发牌</text>
-    <text>电脑玩家轮转</text>
+    <text>四局累计</text>
+    <text>补杠抢杠</text>
+    <text>完整计分</text>
   </view>
-  <text class="lobby-note">当前版本先验证完整摸打流程，吃、碰、杠、胡和联网房间将在后续接入。</text>
+  <text class="lobby-note">支持吃碰杠胡、一炮多响、过胡、杠上花、海底、连庄换庄与总结算。当前使用明确标注的演示计分配置。</text>
 </view>
 
 <view wx:else class="table-page">
   <view class="table-header">
     <view>
-      <text class="round-label">第 {{round}} 局</text>
-      <text class="wall-label">牌墙 {{wallCount}} 张</text>
+      <text class="round-label">第 {{round}} / {{roundLimit}} 局</text>
+      <text class="wall-label">牌墙 {{wallCount}} 张 · {{scoringName}}</text>
+    </view>
+    <view class="score-strip">
+      <view wx:for="{{scores}}" wx:key="seat" class="score-chip {{item.dealer ? 'dealer' : ''}}">
+        <text>{{item.name}}{{item.dealer ? '庄' : ''}}</text>
+        <text class="score-value">{{item.score}}</text>
+      </view>
     </view>
     <view class="header-actions">
       <button class="mini-button" bindtap="startGame">重开</button>
@@ -99,11 +105,41 @@
   </view>
 
   <view wx:if="{{finished}}" class="result-mask">
-    <view class="result-card">
+    <scroll-view class="result-card" scroll-y>
       <text class="result-title">{{resultTitle}}</text>
+      <text class="demo-rule-badge">{{scoringName}}</text>
       <text wx:if="{{winPatternText}}" class="result-patterns">{{winPatternText}}</text>
       <text class="result-message">{{message}}</text>
-      <button class="primary-button compact" bindtap="startGame">再来一局</button>
-    </view>
+
+      <view wx:if="{{!matchFinished}}" class="dealer-result">
+        {{roundSettlement.dealerContinues ? '庄家连庄' : '庄家轮换'}}
+      </view>
+
+      <view class="settlement-table">
+        <view class="settlement-head">
+          <text>玩家</text><text>本局</text><text>累计</text>
+        </view>
+        <view wx:for="{{settlementRows}}" wx:key="seat" class="settlement-line">
+          <text>{{item.name}}</text>
+          <text class="delta {{item.delta > 0 ? 'positive' : item.delta < 0 ? 'negative' : ''}}">{{item.deltaText}}</text>
+          <text>{{item.total}}</text>
+        </view>
+      </view>
+
+      <view wx:if="{{roundSettlement.kongDeltas}}" class="kong-score-note">
+        杠分已计入本局分差
+      </view>
+
+      <view wx:if="{{matchFinished}}" class="ranking-list">
+        <text class="ranking-title">最终排名</text>
+        <view wx:for="{{rankings}}" wx:key="seat" class="ranking-line {{item.rank === 1 ? 'champion' : ''}}">
+          <text>第 {{item.rank}} 名</text><text>{{item.name}}</text><text>{{item.score}} 分</text>
+        </view>
+      </view>
+
+      <button wx:if="{{!matchFinished}}" class="primary-button compact" bindtap="nextRound">下一局</button>
+      <button wx:else class="primary-button compact" bindtap="startGame">重新比赛</button>
+      <button class="result-exit" bindtap="backToLobby">返回大厅</button>
+    </scroll-view>
   </view>
 </view>

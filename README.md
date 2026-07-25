@@ -8,6 +8,7 @@
 - [规则开发基线](docs/rules/poyang-rules-v1.md)
 - [单局引擎开发说明](docs/round-engine.md)
 - [计分结算与多局状态机](docs/scoring-and-match.md)
+- [单机演示计分配置](docs/local-demo-scoring.md)
 - [下一阶段开发计划](docs/next-development-plan.md)
 - [实时房间服务](apps/realtime-server/README.md)
 

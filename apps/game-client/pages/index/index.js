@@ -21,7 +21,15 @@ Page({
     winnerName: "",
     resultTitle: "本局结束",
     winType: "",
-    winPatternText: ""
+    winPatternText: "",
+    roundLimit: 4,
+    completedRounds: 0,
+    matchFinished: false,
+    scoringName: "四局演示计分",
+    scores: [],
+    settlementRows: [],
+    rankings: [],
+    roundSettlement: null
   },
 
   onUnload() {
@@ -33,6 +41,13 @@ Page({
     this.game = createLocalGame();
     this.setData({ screen: "table", selectedId: null });
     this.renderGame();
+  },
+
+  nextRound() {
+    if (!this.game || !this.game.startNextRound()) return;
+    this.setData({ selectedId: null });
+    this.renderGame();
+    this.scheduleAutomation();
   },
 
   backToLobby() {
@@ -97,6 +112,7 @@ Page({
     this.clearBotTimer();
     if (!this.game || this.game.finished || this.game.hasHumanReaction()) return;
     const needsStep = this.game.phase === "REACTION"
+      || this.game.phase === "ROB_KONG"
       || (this.game.phase === "DISCARD" && this.game.turn !== 0);
     if (!needsStep) return;
 
@@ -104,6 +120,8 @@ Page({
       if (!this.game || this.game.finished || this.game.hasHumanReaction()) return;
       if (this.game.phase === "REACTION") {
         this.game.resolveReactions(null);
+      } else if (this.game.phase === "ROB_KONG") {
+        this.game.resolveRobKongReactions(null);
       } else if (this.game.turn !== 0) {
         this.game.playBotTurn();
       }
@@ -122,7 +140,9 @@ Page({
   renderGame() {
     if (!this.game) return;
     const snapshot = this.game.snapshot(this.data.selectedId);
-    if (snapshot.awaitingReaction) {
+    if (snapshot.finished) {
+      snapshot.playerStatusText = snapshot.matchFinished ? "比赛已结束" : "本局已结束";
+    } else if (snapshot.awaitingReaction) {
       snapshot.playerStatusText = "请选择响应操作";
     } else if (snapshot.currentSeat === 0) {
       snapshot.playerStatusText = "轮到你出牌";
