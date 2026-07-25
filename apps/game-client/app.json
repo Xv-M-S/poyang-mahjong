@@ -1,0 +1,14 @@
+{
+  "pages": [
+    "pages/index/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "鄱阳麻将",
+    "navigationBarBackgroundColor": "#0d4d3a",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#082c25",
+    "backgroundTextStyle": "light"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}
