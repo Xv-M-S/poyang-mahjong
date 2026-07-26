@@ -9,3 +9,12 @@ view,
 text {
   box-sizing: border-box;
 }
+
+/* classic-mahjong-theme */
+page {
+  background: #071f18;
+  color: #f8efd6;
+  font-family: "STKaiti", "KaiTi", "Songti SC", serif;
+}
+button { font-family: inherit; }
+button::after { border: 0; }

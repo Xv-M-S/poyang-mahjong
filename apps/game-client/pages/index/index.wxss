@@ -618,3 +618,42 @@
 }
 
 .online-entry{width:420rpx;margin-top:20rpx;border:1rpx solid rgba(246,215,136,.55);border-radius:999rpx;background:rgba(255,255,255,.06);color:#f6d788;font-size:30rpx}.online-entry::after{border:0}
+
+/* classic-mahjong-theme */
+.lobby {
+  position: relative;
+  background: radial-gradient(circle at 50% 24%, rgba(196,151,62,.2), transparent 30%), repeating-linear-gradient(45deg,rgba(255,255,255,.018) 0 2rpx,transparent 2rpx 16rpx), linear-gradient(155deg,#124b39,#092f27 56%,#061f1b);
+  box-shadow: inset 0 0 120rpx rgba(0,0,0,.35);
+}
+.lobby::before,.lobby::after { content:""; position:absolute; left:34rpx; right:34rpx; height:8rpx; border:1rpx solid rgba(218,174,82,.5); border-left-width:8rpx; border-right-width:8rpx; }
+.lobby::before { top:42rpx; }
+.lobby::after { bottom:42rpx; }
+.brand-tile { border:5rpx solid #e7d8b4; border-radius:14rpx; background:linear-gradient(145deg,#fffdf0,#efe4c5 72%,#d2bd88); color:#a8221e; box-shadow:inset 0 -15rpx 0 #c9b47f,0 18rpx 0 #3d8465,0 28rpx 36rpx rgba(0,0,0,.4); }
+.brand-title { color:#eed28a; font-family:"STKaiti","KaiTi",serif; text-shadow:0 4rpx #6c251c; letter-spacing:12rpx; }
+.primary-button { border:2rpx solid #f1d18a; border-radius:12rpx; background:linear-gradient(#b94435,#87251f); color:#fff2ca; box-shadow:0 9rpx 0 #4f1714,0 16rpx 24rpx rgba(0,0,0,.3); }
+.online-entry,.secondary-button { border:2rpx solid rgba(224,185,98,.7); border-radius:12rpx; background:linear-gradient(rgba(255,248,220,.1),rgba(0,0,0,.12)); color:#ead08a; }
+.feature-row text { border:1rpx solid rgba(224,185,98,.25); border-radius:6rpx; background:rgba(4,28,23,.5); color:#c8b78f; }
+.table-page { background:linear-gradient(90deg,#3a1d13 0,#6f3822 18rpx,#102f26 18rpx,#102f26 calc(100% - 18rpx),#6f3822 calc(100% - 18rpx),#3a1d13 100%); }
+.table-header { background:linear-gradient(#512719,#2e1711); border-bottom:5rpx solid #a66b34; box-shadow:0 7rpx 18rpx rgba(0,0,0,.38); }
+.round-label { color:#f0d28b; text-shadow:0 2rpx #30130d; }
+.score-chip { border:1rpx solid rgba(228,190,112,.22); border-radius:4rpx; background:rgba(20,8,5,.35); }
+.score-chip.dealer { border-color:#d8ad55; background:#762d21; }
+.mahjong-table { margin:22rpx 26rpx; border:10rpx solid #7c4626; border-radius:18rpx; background:radial-gradient(circle at 50% 48%,rgba(35,126,91,.72),transparent 45%),repeating-linear-gradient(135deg,rgba(255,255,255,.012) 0 2rpx,transparent 2rpx 8rpx),#0d4a38; box-shadow:inset 0 0 0 3rpx #b0793b,inset 0 0 100rpx rgba(0,0,0,.35),0 12rpx 28rpx rgba(0,0,0,.42); }
+.opponent { border-radius:8rpx; border-color:rgba(218,176,86,.25); background:linear-gradient(rgba(40,20,13,.9),rgba(17,34,27,.9)); }
+.opponent.active { border-color:#edc96f; background:linear-gradient(#713023,#351c16); }
+.avatar { border:2rpx solid #f0d28b; border-radius:7rpx; background:linear-gradient(145deg,#f0d999,#b8873d); color:#5c1e19; }
+.wind-disc { border:7rpx double #c79a4a; border-radius:12rpx; background:linear-gradient(145deg,rgba(54,27,17,.94),rgba(7,47,37,.94)); box-shadow:0 10rpx 24rpx rgba(0,0,0,.35); }
+.wind-main { color:#edcf82; text-shadow:0 3rpx #6d211b; }
+.discard-tile,.meld-tile,.mahjong-tile { overflow:hidden; border:1rpx solid #c9b783; background:linear-gradient(145deg,#fffdf2,#f2e9cd 68%,#d6c28f); box-shadow:inset 0 -6rpx 0 #c9b77f,0 5rpx 7rpx rgba(0,0,0,.32); }
+.mahjong-tile { box-shadow:inset 0 -9rpx 0 #c9b77f,0 9rpx 0 #397c60,0 14rpx 13rpx rgba(0,0,0,.38); }
+.mahjong-tile.selected { transform:translateY(-24rpx); outline:4rpx solid #f0c85e; box-shadow:inset 0 -9rpx 0 #c9b77f,0 9rpx 0 #a22f25,0 16rpx 22rpx rgba(0,0,0,.45); }
+.tile-face { width:100%; height:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.tile-art { display:block; width:100%; height:100%; }
+.discard-tile .tile-art,.meld-tile .tile-art { width:108%; height:108%; }
+.player-panel { background:linear-gradient(#502719 0,#2e1812 16rpx,#0a3028 16rpx,#061f1b 100%); border-top:4rpx solid #a86b34; box-shadow:0 -12rpx 28rpx rgba(0,0,0,.35); }
+.player-panel.my-turn { border-top-color:#efcd76; }
+.action-bar { background:rgba(31,14,9,.52); border-top:1rpx solid rgba(231,196,121,.18); border-bottom:1rpx solid rgba(231,196,121,.18); }
+.action-button,.discard-button { border:2rpx solid #e7c875; border-radius:7rpx; background:linear-gradient(#b94435,#84261f); color:#fff0c4; box-shadow:0 5rpx 0 #4e1713; }
+.action-gang,.action-peng,.action-chi { background:linear-gradient(#e1c071,#a97831); color:#3e2115; }
+.result-card { border:9rpx double #d0a856; border-radius:12rpx; background:linear-gradient(145deg,#174f3d,#0a3028); box-shadow:0 24rpx 70rpx rgba(0,0,0,.55); }
+.result-title,.ranking-title { color:#efd187; text-shadow:0 3rpx #6e231a; }

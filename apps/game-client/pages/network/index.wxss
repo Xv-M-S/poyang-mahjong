@@ -1,2 +1,42 @@
 @import "../index/index.wxss";
 .network-page{min-height:100vh;padding:90rpx 42rpx;background:linear-gradient(150deg,#0d4d3a,#052c25);color:#fff}.network-title{display:block;color:#f6d788;font-size:58rpx;font-weight:800;text-align:center}.network-subtitle{display:block;margin-top:16rpx;color:rgba(255,255,255,.6);font-size:25rpx;text-align:center}.network-card{margin-top:60rpx;padding:40rpx 34rpx;border:1rpx solid rgba(255,255,255,.12);border-radius:28rpx;background:rgba(255,255,255,.07)}.field-label{display:block;margin-bottom:12rpx;color:rgba(255,255,255,.65);font-size:23rpx}.network-input{height:78rpx;padding:0 22rpx;border-radius:14rpx;background:rgba(0,0,0,.2);color:#fff;font-size:25rpx}.room-code-input{text-align:center;font-size:38rpx;letter-spacing:12rpx}.connection-row{display:flex;align-items:center;gap:10rpx;margin-top:14rpx;color:rgba(255,255,255,.5);font-size:20rpx}.connection-dot{width:12rpx;height:12rpx;border-radius:50%;background:#8d958f}.state-CONNECTED{background:#60dfa0}.state-CONNECTING,.state-RECONNECTING{background:#f6d788}.network-button{width:100%;margin-top:30rpx}.secondary-button{margin-top:22rpx;border:1rpx solid rgba(246,215,136,.5);border-radius:999rpx;background:transparent;color:#f6d788}.divider{margin:28rpx 0;color:rgba(255,255,255,.35);font-size:21rpx;text-align:center}.network-error{display:block;margin-top:20rpx;color:#ff8178;text-align:center}.network-tip{display:block;margin-top:30rpx;color:rgba(255,255,255,.38);font-size:21rpx;line-height:1.6;text-align:center}
+/* classic-mahjong-theme */
+.network-page {
+  position: relative;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(205,158,67,.16), transparent 28%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.014) 0 2rpx, transparent 2rpx 14rpx),
+    linear-gradient(155deg,#124b39,#082c25 58%,#061e1a);
+  box-shadow: inset 0 0 110rpx rgba(0,0,0,.32);
+}
+.network-page::before {
+  content: "";
+  position: absolute;
+  top: 38rpx;
+  left: 36rpx;
+  right: 36rpx;
+  height: 7rpx;
+  border: 1rpx solid rgba(226,184,88,.5);
+  border-left-width: 8rpx;
+  border-right-width: 8rpx;
+}
+.network-title { color:#efd187; font-family:"STKaiti","KaiTi",serif; letter-spacing:8rpx; text-shadow:0 3rpx #6c251c; }
+.network-subtitle { color:#cbbd9e; }
+.network-card {
+  border: 7rpx double #9a6635;
+  border-radius: 12rpx;
+  background: linear-gradient(145deg,rgba(25,79,61,.96),rgba(7,42,35,.96));
+  box-shadow: inset 0 0 36rpx rgba(0,0,0,.24),0 20rpx 45rpx rgba(0,0,0,.35);
+}
+.field-label { color:#d4bf8a; }
+.network-input {
+  border:2rpx solid rgba(211,173,91,.3);
+  border-radius:6rpx;
+  background:rgba(3,25,21,.62);
+  color:#f8efd6;
+  box-shadow:inset 0 5rpx 14rpx rgba(0,0,0,.3);
+}
+.room-code-input { color:#f0d084; font-family:Georgia,serif; }
+.connection-row { color:#b7aa8b; }
+.divider { color:#a89978; }
+.network-tip { color:#958a70; }

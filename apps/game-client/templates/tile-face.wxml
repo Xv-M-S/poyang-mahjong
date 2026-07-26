@@ -1,0 +1,3 @@
+<template name="tile-face">
+  <image class="tile-art" src="{{imagePath}}" mode="aspectFit" />
+</template>

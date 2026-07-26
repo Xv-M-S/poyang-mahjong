@@ -51,6 +51,7 @@ function createTile(kind, copy) {
   const suited = kind < 27;
   const suitIndex = suited ? Math.floor(kind / 9) : 3;
   const rank = suited ? (kind % 9) + 1 : kind - 27;
+  const suitClass = suited ? ["wan", "tong", "tiao"][suitIndex] : "honor";
   return {
     id: kind * 4 + copy,
     kind,
@@ -58,7 +59,8 @@ function createTile(kind, copy) {
     suitIndex,
     symbol: suited ? String(rank) : HONOR_SYMBOLS[rank],
     unit: suited ? SUIT_UNITS[suitIndex] : "",
-    suitClass: suited ? ["wan", "tong", "tiao"][suitIndex] : "honor"
+    suitClass,
+    imagePath: "/assets/tiles/tile-" + kind + ".png"
   };
 }
 

@@ -1,3 +1,4 @@
+<import src="../../templates/tile-face.wxml" />
 <view wx:if="{{screen === 'lobby'}}" class="lobby">
   <view class="brand-tile">鄱</view>
   <text class="brand-title">鄱阳麻将</text>
@@ -49,22 +50,22 @@
 
     <view class="discard-area discard-top">
       <view wx:for="{{discards[2]}}" wx:key="id" class="discard-tile suit-{{item.suitClass}}">
-        <text>{{item.symbol}}</text><text class="discard-unit">{{item.unit}}</text>
+        <template is="tile-face" data="{{...item}}" />
       </view>
     </view>
     <view class="discard-area discard-left">
       <view wx:for="{{discards[3]}}" wx:key="id" class="discard-tile suit-{{item.suitClass}}">
-        <text>{{item.symbol}}</text><text class="discard-unit">{{item.unit}}</text>
+        <template is="tile-face" data="{{...item}}" />
       </view>
     </view>
     <view class="discard-area discard-right">
       <view wx:for="{{discards[1]}}" wx:key="id" class="discard-tile suit-{{item.suitClass}}">
-        <text>{{item.symbol}}</text><text class="discard-unit">{{item.unit}}</text>
+        <template is="tile-face" data="{{...item}}" />
       </view>
     </view>
     <view class="discard-area discard-bottom">
       <view wx:for="{{discards[0]}}" wx:key="id" class="discard-tile suit-{{item.suitClass}}">
-        <text>{{item.symbol}}</text><text class="discard-unit">{{item.unit}}</text>
+        <template is="tile-face" data="{{...item}}" />
       </view>
     </view>
   </view>
@@ -76,7 +77,7 @@
           <text class="meld-label">{{item.label}}</text>
           <view class="meld-tiles">
             <view wx:for="{{item.tiles}}" wx:for-item="meldTile" wx:key="id" class="meld-tile suit-{{meldTile.suitClass}}">
-              <text>{{meldTile.symbol}}</text><text class="meld-unit">{{meldTile.unit}}</text>
+              <template is="tile-face" data="{{...meldTile}}" />
             </view>
           </view>
         </view>
@@ -98,8 +99,7 @@
     <scroll-view class="hand-scroll" scroll-x enhanced show-scrollbar="false">
       <view class="hand-row">
         <view wx:for="{{hand}}" wx:key="id" data-id="{{item.id}}" bindtap="selectTile" class="mahjong-tile suit-{{item.suitClass}} {{item.selected ? 'selected' : ''}}">
-          <text class="tile-symbol">{{item.symbol}}</text>
-          <text class="tile-unit">{{item.unit}}</text>
+          <template is="tile-face" data="{{...item}}" />
         </view>
       </view>
     </scroll-view>
