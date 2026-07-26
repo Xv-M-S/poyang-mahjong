@@ -4,6 +4,8 @@ export type RealtimeCommand =
   | Command<"room.create", Record<string, never>>
   | Command<"room.join", { readonly roomCode: string }>
   | Command<"room.leave", Record<string, never>>
+  | Command<"room.dissolve", Record<string, never>>
+  | Command<"room.restart", Record<string, never>>
   | Command<"room.ready", { readonly ready: boolean }>
   | Command<"room.start", Record<string, never>>
   | Command<"game.draw", Record<string, never>>
@@ -45,4 +47,5 @@ export interface DispatchResult {
   readonly events: readonly OutboundEvent[];
   readonly leftUserId?: string;
   readonly roomClosed?: boolean;
+  readonly idempotentReplay?: boolean;
 }

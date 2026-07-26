@@ -1,1 +1,7 @@
 @import "../index/index.wxss";
+.turn-countdown { margin-top: 8rpx; color: #f5c65d; font-size: 30rpx; font-weight: 700; }
+.network-settlement { width: 100%; margin: 24rpx 0; }
+.settlement-row { display: grid; grid-template-columns: 1fr 100rpx 140rpx; gap: 12rpx; padding: 14rpx 0; border-bottom: 1rpx solid rgba(255,255,255,.12); color: #f8eed3; }
+.score-positive { color: #ffd36b; font-weight: 700; }
+.score-negative { color: #8dd8c2; font-weight: 700; }
+.leave-match-button { margin-top: 20rpx; color: #f3c9bd; background: transparent; border: 1rpx solid rgba(243,201,189,.45); }

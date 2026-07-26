@@ -89,6 +89,33 @@ export class MatchEngine {
     }
   }
 
+  static fromSnapshot(
+    snapshot: MatchSnapshot,
+    options: Pick<MatchConfig, "dealerContinuation" | "scoring">,
+  ): MatchEngine {
+    const engine = new MatchEngine({
+      matchId: snapshot.matchId,
+      roundLimit: snapshot.roundLimit,
+      initialDealerSeat: snapshot.dealerSeat,
+      initialScores: snapshot.totalScores,
+      dealerContinuation: options.dealerContinuation,
+      scoring: options.scoring,
+    });
+    engine.version = snapshot.version;
+    engine.phase = snapshot.phase;
+    engine.completedRounds = snapshot.completedRounds;
+    engine.dealerSeat = snapshot.dealerSeat;
+    engine.totalScores = [...snapshot.totalScores];
+    engine.activeRound = snapshot.activeRound ? { ...snapshot.activeRound } : null;
+    engine.history.splice(0, engine.history.length, ...snapshot.history.map((record) => ({
+      descriptor: { ...record.descriptor },
+      outcome: { ...record.outcome, patterns: [...record.outcome.patterns] },
+      score: cloneScore(record.score),
+      totalScores: [...record.totalScores],
+      nextDealerSeat: record.nextDealerSeat,
+    })));
+    return engine;
+  }
   getSnapshot(): MatchSnapshot {
     return {
       matchId: this.matchId,

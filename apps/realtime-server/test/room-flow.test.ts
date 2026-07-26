@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import { CommandRouter } from "../src/application/command-router.ts";
 import { DEVELOPMENT_ROOM_RULES } from "../src/config.ts";
+import { RoomAggregate } from "../src/domain/room-aggregate.ts";
 import { InMemoryRoomRepository } from "../src/repositories/in-memory-room-repository.ts";
+import { FileRoomRepository } from "../src/repositories/file-room-repository.ts";
 
 test("four players can join, ready, and start a private-hand round", () => {
   const rooms = new InMemoryRoomRepository();
@@ -101,7 +106,9 @@ test("duplicate requestId returns the cached result without a second room", () =
 
   const first = router.handle("owner", command);
   const repeated = router.handle("owner", command);
-  assert.deepEqual(repeated, first);
+  assert.equal(repeated.roomId, first.roomId);
+  assert.equal(repeated.idempotentReplay, true);
+  assert.equal(repeated.events.every((event) => event.audience.kind === "USER"), true);
   assert.equal(roomSequence, 1);
   assert.equal(rooms.getByCode("654321")?.roomId, "room-1");
 });
@@ -207,4 +214,81 @@ test("players can leave a waiting room and the owner can close it", () => {
     payload: {},
   });
   assert.notEqual(recreated.roomId, created.roomId);
+});
+
+test("server timeout advances turns and resolves missing reactions", () => {
+  const rooms = new InMemoryRoomRepository();
+  const router = new CommandRouter({
+    rooms,
+    rules: DEVELOPMENT_ROOM_RULES,
+    createRoomId: () => "timeout-room",
+    createRoomCode: () => "222222",
+    turnTimeoutMs: 50,
+    reactionTimeoutMs: 20,
+  });
+  router.handle("p0", { type: "room.create", requestId: "tc", roomId: null, expectedVersion: 0, payload: {} });
+  for (let seat = 1; seat < 4; seat += 1) {
+    router.handle("p" + seat, { type: "room.join", requestId: "tj" + seat, roomId: null, expectedVersion: 0, payload: { roomCode: "222222" } });
+  }
+  const room = rooms.getById("timeout-room")!;
+  for (let seat = 0; seat < 4; seat += 1) {
+    router.handle("p" + seat, { type: "room.ready", requestId: "tr" + seat, roomId: room.roomId, expectedVersion: room.getVersion(), payload: { ready: true } });
+  }
+  router.handle("p0", { type: "room.start", requestId: "ts", roomId: room.roomId, expectedVersion: room.getVersion(), payload: {} });
+  const tileId = room.getPrivateSnapshot("p0").hand[0].id;
+  router.handle("p0", { type: "game.discard", requestId: "td", roomId: room.roomId, expectedVersion: room.getVersion(), payload: { tileId } });
+  const timeoutVersion = room.getVersion();
+  const result = router.handleTimeout(room.roomId, timeoutVersion);
+  assert.ok(result);
+  assert.equal(room.getPublicSnapshot().round?.phase, "PLAYING");
+  assert.equal(room.getPublicSnapshot().round?.currentSeat, 1);
+  assert.equal(room.getPublicSnapshot().round?.turnAction, "DRAW");
+  assert.ok(room.getPublicSnapshot().actionDeadlineAt);
+});
+
+test("active rooms survive repository restart with private hands intact", () => {
+  const directory = mkdtempSync(join(tmpdir(), "poyang-room-"));
+  try {
+    const path = join(directory, "rooms.json");
+    const rooms = new FileRoomRepository(path);
+    const router = new CommandRouter({
+      rooms,
+      rules: DEVELOPMENT_ROOM_RULES,
+      createRoomId: () => "persist-room",
+      createRoomCode: () => "333333",
+    });
+    router.handle("p0", { type: "room.create", requestId: "pc", roomId: null, expectedVersion: 0, payload: {} });
+    for (let seat = 1; seat < 4; seat += 1) {
+      router.handle("p" + seat, { type: "room.join", requestId: "pj" + seat, roomId: null, expectedVersion: 0, payload: { roomCode: "333333" } });
+    }
+    const room = rooms.getById("persist-room")!;
+    for (let seat = 0; seat < 4; seat += 1) {
+      router.handle("p" + seat, { type: "room.ready", requestId: "pr" + seat, roomId: room.roomId, expectedVersion: room.getVersion(), payload: { ready: true } });
+    }
+    router.handle("p0", { type: "room.start", requestId: "ps", roomId: room.roomId, expectedVersion: room.getVersion(), payload: {} });
+    const before = room.getPrivateSnapshot("p0");
+    const restored = new FileRoomRepository(path).getById("persist-room");
+    assert.ok(restored);
+    assert.deepEqual(restored.getPrivateSnapshot("p0").hand, before.hand);
+    assert.equal(restored.getPublicSnapshot().round?.remainingTiles, 83);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+test("completed rooms can restart and owners can dissolve them", () => {
+  const original = new RoomAggregate({
+    roomId: "lifecycle-room",
+    roomCode: "444444",
+    ownerId: "owner",
+    rules: DEVELOPMENT_ROOM_RULES,
+  });
+  const completed = RoomAggregate.fromPersistenceSnapshot({
+    ...original.toPersistenceSnapshot(),
+    phase: "COMPLETED",
+  });
+  completed.restart("owner", completed.getVersion());
+  assert.equal(completed.getPublicSnapshot().phase, "WAITING");
+  assert.equal(completed.getPublicSnapshot().players.every((player) => !player.ready), true);
+  completed.dissolve("owner", completed.getVersion());
+  assert.equal(completed.getPublicSnapshot().phase, "CLOSED");
 });

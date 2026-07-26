@@ -17,6 +17,9 @@ export class ConnectionRegistry {
     if (sockets.size === 0) this.socketsByUser.delete(userId);
   }
 
+  hasUser(userId: string): boolean {
+    return (this.socketsByUser.get(userId)?.size ?? 0) > 0;
+  }
   bindRoom(userId: string, roomId: string): void {
     const users = this.usersByRoom.get(roomId) ?? new Set<string>();
     users.add(userId);

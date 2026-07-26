@@ -13,6 +13,10 @@ export interface RealtimeServerConfig {
   readonly host: string;
   readonly port: number;
   readonly roomRules: RoomRules;
+  readonly dataDirectory?: string;
+  readonly turnTimeoutMs?: number;
+  readonly reactionTimeoutMs?: number;
+  readonly heartbeatIntervalMs?: number;
 }
 
 // Development-only values. Production must load an approved, versioned rule set.
@@ -52,6 +56,10 @@ export function loadConfig(
   return {
     host: env.HOST ?? "127.0.0.1",
     port,
+    dataDirectory: env.DATA_DIRECTORY ?? "apps/realtime-server/.data",
+    turnTimeoutMs: Number(env.TURN_TIMEOUT_MS ?? 30000),
+    reactionTimeoutMs: Number(env.REACTION_TIMEOUT_MS ?? 12000),
+    heartbeatIntervalMs: Number(env.HEARTBEAT_INTERVAL_MS ?? 15000),
     roomRules: DEVELOPMENT_ROOM_RULES,
   };
 }

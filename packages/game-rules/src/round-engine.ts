@@ -109,6 +109,8 @@ export interface RoundSnapshot {
   readonly turnAction: TurnAction | null;
   readonly drawIndex: number;
   readonly remainingTiles: number;
+  /** Complete wall order. This field is for trusted persistence only. */
+  readonly wall: readonly Tile[];
   readonly hands: readonly (readonly Tile[])[];
   readonly melds: readonly (readonly DeclaredMeld[])[];
   readonly discards: readonly (readonly Tile[])[];
@@ -189,6 +191,43 @@ export class SingleRoundEngine {
     this.assertConservation();
   }
 
+  static fromSnapshot(
+    snapshot: RoundSnapshot,
+    reactionPriority: ReactionPriorityPolicy = DEFAULT_REACTION_PRIORITY,
+  ): SingleRoundEngine {
+    const engine = new SingleRoundEngine({
+      roundId: snapshot.roundId,
+      dealerSeat: snapshot.dealerSeat,
+      wall: snapshot.wall,
+      reactionPriority,
+    });
+    engine.version = snapshot.version;
+    engine.phase = snapshot.phase;
+    engine.currentSeat = snapshot.currentSeat;
+    engine.turnAction = snapshot.turnAction;
+    engine.drawIndex = snapshot.drawIndex;
+    engine.hands.splice(0, 4, ...snapshot.hands.map((hand) => [...hand]));
+    engine.melds.splice(0, 4, ...snapshot.melds.map((melds) =>
+      melds.map((meld) => ({ ...meld, tiles: [...meld.tiles] })),
+    ));
+    engine.discards.splice(0, 4, ...snapshot.discards.map((pile) => [...pile]));
+    engine.pendingDiscard = snapshot.pendingDiscard
+      ? { seat: snapshot.pendingDiscard.seat, tile: { ...snapshot.pendingDiscard.tile } }
+      : null;
+    engine.pendingAddedKong = snapshot.pendingAddedKong
+      ? { ...snapshot.pendingAddedKong, tile: { ...snapshot.pendingAddedKong.tile } }
+      : null;
+    engine.reactionClaims.clear();
+    for (const claim of snapshot.reactionClaims) {
+      engine.reactionClaims.set(claim.seat, { ...claim, tileIds: [...claim.tileIds] });
+    }
+    engine.outcome = snapshot.outcome
+      ? { ...snapshot.outcome, patterns: [...snapshot.outcome.patterns] }
+      : null;
+    engine.events.splice(0);
+    engine.assertConservation();
+    return engine;
+  }
   get remainingTiles(): number {
     return this.wall.length - this.drawIndex;
   }
@@ -203,6 +242,7 @@ export class SingleRoundEngine {
       turnAction: this.turnAction,
       drawIndex: this.drawIndex,
       remainingTiles: this.remainingTiles,
+      wall: this.wall.map((tile) => ({ ...tile })),
       hands: this.hands.map((hand) => [...hand]),
       melds: this.melds.map((seatMelds) =>
         seatMelds.map((meld) => ({ ...meld, tiles: [...meld.tiles] })),

@@ -32,6 +32,7 @@ export interface PublicRoomSnapshot {
   }[];
   readonly match: MatchSnapshot | null;
   readonly round: PublicRoundSnapshot | null;
+  readonly actionDeadlineAt: number | null;
 }
 
 export interface PublicRoundSnapshot {
@@ -79,6 +80,18 @@ export interface CreateRoomOptions {
   readonly now?: () => Date;
 }
 
+export interface RoomPersistenceSnapshot {
+  readonly roomId: string;
+  readonly roomCode: string;
+  readonly ownerId: string;
+  readonly rules: RoomRules;
+  readonly version: number;
+  readonly phase: RoomPhase;
+  readonly players: readonly RoomPlayer[];
+  readonly match: MatchSnapshot | null;
+  readonly round: RoundSnapshot | null;
+  readonly actionDeadlineAt: number | null;
+}
 export class RoomAggregate {
   readonly roomId: string;
   readonly roomCode: string;
@@ -91,6 +104,7 @@ export class RoomAggregate {
   private phase: RoomPhase = "WAITING";
   private match: MatchEngine | null = null;
   private round: SingleRoundEngine | null = null;
+  private actionDeadlineAt: number | null = null;
 
   constructor(options: CreateRoomOptions) {
     this.roomId = options.roomId;
@@ -101,6 +115,40 @@ export class RoomAggregate {
     this.addPlayer(options.ownerId);
   }
 
+  static fromPersistenceSnapshot(
+    snapshot: RoomPersistenceSnapshot,
+    now?: () => Date,
+  ): RoomAggregate {
+    const room = new RoomAggregate({
+      roomId: snapshot.roomId,
+      roomCode: snapshot.roomCode,
+      ownerId: snapshot.ownerId,
+      rules: snapshot.rules,
+      now,
+    });
+    room.players.splice(0, room.players.length, ...snapshot.players.map((player) => ({ ...player })));
+    room.version = snapshot.version;
+    room.phase = snapshot.phase;
+    room.match = snapshot.match ? MatchEngine.fromSnapshot(snapshot.match, snapshot.rules) : null;
+    room.round = snapshot.round ? SingleRoundEngine.fromSnapshot(snapshot.round) : null;
+    room.actionDeadlineAt = snapshot.actionDeadlineAt;
+    return room;
+  }
+
+  toPersistenceSnapshot(): RoomPersistenceSnapshot {
+    return {
+      roomId: this.roomId,
+      roomCode: this.roomCode,
+      ownerId: this.ownerId,
+      rules: this.rules,
+      version: this.version,
+      phase: this.phase,
+      players: this.players.map((player) => ({ ...player })),
+      match: this.match?.getSnapshot() ?? null,
+      round: this.round?.getSnapshot() ?? null,
+      actionDeadlineAt: this.actionDeadlineAt,
+    };
+  }
   getVersion(): number {
     return this.version;
   }
@@ -127,7 +175,9 @@ export class RoomAggregate {
 
   leave(userId: string, expectedVersion: number): { readonly closed: boolean } {
     this.assertVersion(expectedVersion);
-    this.assertWaiting();
+    if (this.phase !== "WAITING" && this.phase !== "COMPLETED") {
+      throw new RoomError("WRONG_PHASE", "Cannot leave during " + this.phase);
+    }
     const playerIndex = this.players.findIndex(
       (player) => player.userId === userId,
     );
@@ -135,7 +185,7 @@ export class RoomAggregate {
       throw new RoomError("PLAYER_NOT_FOUND", `User ${userId} is not in the room`);
     }
 
-    if (userId === this.ownerId) {
+    if (userId === this.ownerId || this.phase === "COMPLETED") {
       this.players.splice(0);
       this.phase = "CLOSED";
       this.version += 1;
@@ -150,6 +200,31 @@ export class RoomAggregate {
     return { closed: false };
   }
 
+  dissolve(userId: string, expectedVersion: number): void {
+    this.assertVersion(expectedVersion);
+    if (userId !== this.ownerId) {
+      throw new RoomError("OWNER_ONLY", "Only the room owner may dissolve the room");
+    }
+    this.phase = "CLOSED";
+    this.actionDeadlineAt = null;
+    this.version += 1;
+  }
+
+  restart(userId: string, expectedVersion: number): void {
+    this.assertVersion(expectedVersion);
+    if (userId !== this.ownerId) {
+      throw new RoomError("OWNER_ONLY", "Only the room owner may restart the match");
+    }
+    if (this.phase !== "COMPLETED") {
+      throw new RoomError("WRONG_PHASE", "Cannot restart during " + this.phase);
+    }
+    this.match = null;
+    this.round = null;
+    this.phase = "WAITING";
+    this.actionDeadlineAt = null;
+    for (const player of this.players) player.ready = false;
+    this.version += 1;
+  }
   setReady(userId: string, ready: boolean, expectedVersion: number): void {
     this.assertVersion(expectedVersion);
     this.assertWaiting();
@@ -300,6 +375,7 @@ export class RoomAggregate {
       })),
       match: this.match?.getSnapshot() ?? null,
       round: this.round ? projectPublicRound(this.round.getSnapshot()) : null,
+      actionDeadlineAt: this.actionDeadlineAt,
     };
   }
 
@@ -320,6 +396,44 @@ export class RoomAggregate {
     };
   }
 
+  refreshActionDeadline(
+    turnTimeoutMs: number,
+    reactionTimeoutMs: number,
+    nowMs = Date.now(),
+  ): void {
+    const snapshot = this.round?.getSnapshot();
+    if (this.phase !== "PLAYING" || !snapshot || snapshot.phase === "ROUND_SETTLEMENT") {
+      this.actionDeadlineAt = null;
+      return;
+    }
+    this.actionDeadlineAt = nowMs + (
+      snapshot.phase === "REACTION_WINDOW" || snapshot.phase === "ROB_KONG_WINDOW"
+        ? reactionTimeoutMs
+        : turnTimeoutMs
+    );
+  }
+
+  handleTimeout(expectedVersion: number): boolean {
+    this.assertVersion(expectedVersion);
+    if (this.phase !== "PLAYING" || !this.round) return false;
+    const snapshot = this.round.getSnapshot();
+    if (snapshot.phase === "REACTION_WINDOW") {
+      this.round.resolveReactions(snapshot.version, true);
+    } else if (snapshot.phase === "ROB_KONG_WINDOW") {
+      this.round.resolveRobKongReactions(snapshot.version, true);
+    } else if (snapshot.turnAction === "DRAW" || snapshot.turnAction === "DRAW_REPLACEMENT") {
+      this.round.draw(snapshot.currentSeat!, snapshot.version);
+    } else if (snapshot.turnAction === "DISCARD") {
+      const tile = snapshot.hands[snapshot.currentSeat!][0];
+      if (!tile) throw new Error("Timed-out player has no tile to discard");
+      this.round.discard(snapshot.currentSeat!, tile.id, snapshot.version);
+    } else {
+      return false;
+    }
+    this.finishRoundIfSettled();
+    this.version += 1;
+    return true;
+  }
   private addPlayer(userId: string): RoomPlayer {
     const player: RoomPlayer = {
       userId,

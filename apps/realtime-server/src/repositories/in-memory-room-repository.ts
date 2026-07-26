@@ -14,6 +14,13 @@ export class InMemoryRoomRepository implements RoomRepository {
     return roomId ? this.getById(roomId) : null;
   }
 
+  findByUserId(userId: string): RoomAggregate | null {
+    return this.list().find((room) => room.getPlayer(userId)) ?? null;
+  }
+
+  list(): readonly RoomAggregate[] {
+    return [...this.roomsById.values()];
+  }
   save(room: RoomAggregate): void {
     this.roomsById.set(room.roomId, room);
     this.roomIdByCode.set(room.roomCode, room.roomId);

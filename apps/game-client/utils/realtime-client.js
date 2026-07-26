@@ -123,13 +123,17 @@ class RealtimeClient {
       return;
     }
     if (message.type === "room.snapshot") {
+      if (this.publicSnapshot && message.payload && this.publicSnapshot.roomId === message.payload.roomId && message.payload.version < this.publicSnapshot.version) return;
       if (message.payload && message.payload.phase === "CLOSED") {
         this.clearRoom({ roomLeft: true, roomClosed: true, message });
         return;
       }
       this.publicSnapshot = message.payload;
     }
-    if (message.type === "room.snapshot.private") this.privateSnapshot = message.payload;
+    if (message.type === "room.snapshot.private") {
+      if (this.privateSnapshot && message.payload && message.payload.roomVersion < this.privateSnapshot.roomVersion) return;
+      this.privateSnapshot = message.payload;
+    }
     this.onState({
       connectionState: this.connected ? "CONNECTED" : "CONNECTING",
       publicSnapshot: this.publicSnapshot,

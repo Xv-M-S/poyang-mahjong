@@ -5,3 +5,4 @@ coverage/
 .DS_Store
 npm-debug.log*
 project.private.config.json
+apps/realtime-server/.data/
